@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic - Tac - Toe</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <h1>YOO vs AI</h1>
+    <div id="board"></div>
+    <p id="status"></p>
+
+    <script>
+        const board = Array(9).fill(" ");
+        const human = "X"
+        const ai = "O"
+        let gameOver = false
+
+        function renderBoard(){
+            const boardDiv = document.getElementById("board");
+            boardDiv.innerHTML =""
+            board.forEach((cell, i) => {
+                const btn = document.createElement("button");
+                btn.classList.add("cell");
+                btn.textContent = cell === " " ? "":cell;
+                btn.disabled = (cell !== " " || gameOver);
+                btn.onclick = () => makeMove(i);
+                boardDiv.appendChild(btn);
+
+            });
+        }
+
+        async function makeMove(i) {
+            if (board[i] !== " " || gameOver) return;
+            board[i] = human;
+            renderBoard();
+            if (checkGameOver()) return;
+
+            // Ask backend for AI move
+            const response = await fetch("/move", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ board: board, ai: ai })
+            });
+            const data = await response.json();
+            const aiMove = data.move;
+            if (aiMove !== null) board[aiMove] = ai;
+            renderBoard();
+            checkGameOver();
+        }
+
+        function checkGameOver() {
+            const lines = [
+                [0,1,2],[3,4,5],[6,7,8],
+                [0,3,6],[1,4,7],[2,5,8],
+                [0,4,8],[2,4,6]
+            ];
+            for (let [a,b,c] of lines) {
+                if (board[a] !== " " && board[a] === board[b] && board[b] === board[c]) {
+                    document.getElementById("status").textContent = board[a] + " wins!";
+                    gameOver = true;
+                    renderBoard();
+                    return true;
+                }
+            }
+            if (!board.includes(" ")) {
+                document.getElementById("status").textContent = "It's a draw!";
+                gameOver = true;
+                renderBoard();
+                return true;
+            }
+            return false;
+        }
+
+        renderBoard();
+        
+        </script>
+    
+</body>
+</html>
